@@ -1,36 +1,102 @@
-/* Basic CSS Styles */
+@import 'tailwindcss';
 
-body {
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --font-sans: var(--app-font-sans);
+}
+
+:root {
+  --background: 177 23% 73%;
+  --foreground: 0 39% 54%;
+  --border: 0 48% 70%;
+  --app-font-sans: Arial, sans-serif;
+}
+
+.dark {
+  --background: 177 23% 73%;
+  --foreground: 0 39% 54%;
+  --border: 0 48% 70%;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    margin: 0;
+  }
+
+  body {
+    min-height: 100dvh;
+    background: #abc8c4;
+    color: #b85f63;
     font-family: Arial, sans-serif;
     line-height: 1.6;
-    margin: 0;
-    padding: 0;
-    background-color: #e6f2ff; /* Light blue background */
-    color: #666666; /* Soft gray text */
-    -webkit-text-stroke: 1px #ffcccc; /* Light red text stroke */
+    -webkit-text-stroke: 1px #d4878a;
+  }
 }
 
-header {
-    background: #d4e6f1; /* Light gray-blue header */
-    color: #333333; /* Dark gray text for contrast */
-    padding: 1rem 0;
-    text-align: center;
+.hello-page {
+  min-height: 100dvh;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 1rem;
+  background: #abc8c4;
 }
 
-.container {
-    width: 80%;
-    margin: auto;
-    overflow: hidden;
+.hello-content {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  max-width: 100%;
+  padding: clamp(1.25rem, 4vw, 2.75rem) clamp(1.5rem, 6vw, 5rem);
+  background: #e49a9d;
+  border: 2px solid #d4878a;
+  border-radius: 1rem;
+  box-shadow: 0 14px 36px rgb(112 66 66 / 18%);
 }
 
-button {
-    background: #d4e6f1; /* Light gray-blue button */
-    color: #333333; /* Dark gray text */
-    border: none;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
+.hello-heading {
+  margin: 0;
+  color: #b85f63;
+  font-family: Arial, sans-serif;
+  font-size: clamp(2rem, 10vw, 7rem);
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  text-wrap: balance;
+  -webkit-text-stroke: 1px #d4878a;
 }
 
-button:hover {
-    background: #e0f0f7; /* Slightly darker light blue on hover */
+.birthday {
+  margin: 0;
+  color: #b85f63;
+  font-family: Arial, sans-serif;
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  -webkit-text-stroke: 0;
+}
+
+@media (max-width: 420px) {
+  .hello-heading {
+    font-size: clamp(1.75rem, 11vw, 3rem);
+    letter-spacing: -0.04em;
+  }
+
+  .birthday {
+    font-size: 1rem;
+  }
 }
