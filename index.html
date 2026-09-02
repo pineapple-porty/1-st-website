@@ -8,6 +8,12 @@
 </head>
 <body>
     <h1>ZACHARY SPARKS</h1>
-    <p>Birthday: February 9, 2011</p>
+    <p id="birthday" style="cursor: pointer; color: white;">Birthday: February 9, 2011</p>
+    
+    <script>
+        document.getElementById("birthday").addEventListener("click", function() {
+            window.open("https://youtube.com", "_blank");
+        });
+    </script>
 </body>
 </html>
