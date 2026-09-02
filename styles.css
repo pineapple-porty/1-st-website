@@ -6,7 +6,8 @@ body {
     margin: 0;
     padding: 0;
     background-color: blue;
-    color: #333;
+    color: red;
+    -webkit-text-stroke: 1px red;
 }
 
 header {
