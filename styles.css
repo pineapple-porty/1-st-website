@@ -5,14 +5,14 @@ body {
     line-height: 1.6;
     margin: 0;
     padding: 0;
-    background-color: blue;
-    color: red;
-    -webkit-text-stroke: 1px red;
+    background-color: #e6f2ff; /* Light blue background */
+    color: #666666; /* Soft gray text */
+    -webkit-text-stroke: 1px #ffcccc; /* Light red text stroke */
 }
 
 header {
-    background: #35424a;
-    color: #ffffff;
+    background: #d4e6f1; /* Light gray-blue header */
+    color: #333333; /* Dark gray text for contrast */
     padding: 1rem 0;
     text-align: center;
 }
@@ -24,13 +24,13 @@ header {
 }
 
 button {
-    background: #35424a;
-    color: #ffffff;
+    background: #d4e6f1; /* Light gray-blue button */
+    color: #333333; /* Dark gray text */
     border: none;
     padding: 0.5rem 1rem;
     cursor: pointer;
 }
 
 button:hover {
-    background: #576e7e;
+    background: #e0f0f7; /* Slightly darker light blue on hover */
 }
