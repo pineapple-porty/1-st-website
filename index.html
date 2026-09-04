@@ -186,6 +186,23 @@
 
         function moveFlyers(elapsed, now) {
             const slowest = guys.map((guy, index) => ({ guy, index })).sort((a, b) => a.guy.hp - b.guy.hp).slice(0, 3);
+            const guyToBall = new Map();
+            if (greenBalls.length > 0) {
+                slowest.forEach(({guy}) => {
+                    const nearest = greenBalls.reduce((nearest, ball) => {
+                        const dist = Math.hypot(
+                            ball.x + ball.radius - (guy.x + guy.width / 2),
+                            ball.y + ball.radius - (guy.y + guy.height / 2)
+                        );
+                        const nearestDist = Math.hypot(
+                            nearest.x + nearest.radius - (guy.x + guy.width / 2),
+                            nearest.y + nearest.radius - (guy.y + guy.height / 2)
+                        );
+                        return dist < nearestDist ? ball : nearest;
+                    }, greenBalls[0]);
+                    guyToBall.set(guy, nearest);
+                });
+            }
             flyers.forEach((flyer, index) => {
                 const target = slowest[index % slowest.length].guy;
                 const dx = target.x + target.width / 2 - flyer.x;
@@ -199,6 +216,17 @@
                 flyer.x += flyer.velocityX * elapsed; flyer.y += flyer.velocityY * elapsed;
                 flyer.width = flyer.height = flyer.size; keepOnScreen(flyer);
                 flyer.element.style.transform = `translate3d(${flyer.x}px,${flyer.y}px,0) rotate(${Math.atan2(flyer.velocityY, flyer.velocityX)}rad)`;
+                if (!target.dragging) {
+                    const nearestBall = guyToBall.get(target);
+                    if (nearestBall) {
+                        const dxToBall = nearestBall.x + nearestBall.radius - (target.x + target.width / 2);
+                        const dyToBall = nearestBall.y + nearestBall.radius - (target.y + target.height / 2);
+                        const distToBall = Math.hypot(dxToBall, dyToBall) || 1;
+                        const pushStrength = 0.01 * elapsed;
+                        target.velocityX += (dxToBall / distToBall) * pushStrength;
+                        target.velocityY += (dyToBall / distToBall) * pushStrength;
+                    }
+                }
             });
         }
 
