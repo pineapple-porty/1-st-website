@@ -27,10 +27,12 @@
             <p id="birthday" class="birthday">Birthday: February 9, 2011</p>
         </div>
     </main>
+    <pre id="positions" style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: #fff; padding: 8px; margin: 0; font: 12px monospace; overflow: auto; z-index: 100;"></pre>
 
     <script>
         // Everything is kept in this readable file so the repository stays easy to edit.
         const page = document.querySelector('.hello-page');
+        const positionsEl = document.getElementById('positions');
         const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
         const random = (min, max) => min + Math.random() * (max - min);
         const hpSpeed = (hp) => Math.pow(1.08, hp / 30);
@@ -62,6 +64,32 @@
             return element;
         }
 
+        function updatePositions() {
+            const lines = [];
+            guys.forEach((guy, i) => {
+                lines.push(`guy${i + 1}: (${Math.round(guy.x)}, ${Math.round(guy.y)}) hp:${Math.round(guy.hp)}`);
+            });
+            greenBalls.forEach((ball, i) => {
+                lines.push(`greenBall${i + 1}: (${Math.round(ball.x)}, ${Math.round(ball.y)})`);
+            });
+            blueBalls.forEach((ball, i) => {
+                lines.push(`blueBall${i + 1}: (${Math.round(ball.x)}, ${Math.round(ball.y)})`);
+            });
+            flyers.forEach((flyer, i) => {
+                lines.push(`flyer${i + 1}: (${Math.round(flyer.x)}, ${Math.round(flyer.y)})`);
+            });
+            hazards.forEach((hazard, i) => {
+                lines.push(`hazard${i + 1}: (${Math.round(hazard.x)}, ${Math.round(hazard.y)})`);
+            });
+            walls.forEach((wall, i) => {
+                lines.push(`wall${i + 1}: (${Math.round(wall.x)}, ${Math.round(wall.y)}) ${Math.round(wall.width)}x${Math.round(wall.height)}`);
+            });
+            burstBalls.forEach((ball, i) => {
+                lines.push(`burstBall${i + 1}: (${Math.round(ball.x)}, ${Math.round(ball.y)})`);
+            });
+            positionsEl.textContent = lines.join('\n');
+        }
+
         function place(object) {
             object.element.style.transform = `translate3d(${object.x}px, ${object.y}px, 0)`;
         }
@@ -69,7 +97,7 @@
         // Ten draggable guys.
         guyStarts.forEach(([x, y, velocityX, velocityY], index) => {
             const element = makeElement(`floating-guy-track floating-guy-track-${index + 1}`);
-            element.innerHTML = '<img class="floating-guy" src="bouncing-image.png" alt="" draggable="false"><span class="guy-hp">hp:0</span>';
+            element.innerHTML = '<img class="floating-guy" src="images/bouncing-image.png" alt="" draggable="false"><span class="guy-hp">hp:0</span>';
             guys.push({ element, hpLabel: element.querySelector('.guy-hp'), x, y, velocityX, velocityY, hp: 0, width: 90, height: 140, radius: 70, dragging: false });
         });
 
@@ -369,14 +397,17 @@
             });
             let previous = performance.now();
             function animate(now) {
-                const elapsed = Math.min((now - previous) / 16.67, 2); previous = now;
+                const elapsed = Math.min((now - previous) / 16.67, 2);
+                previous = now;
                 guys.forEach((guy) => {
                     if (!guy.dragging) {
                         const speed = hpSpeed(guy.hp);
-                        guy.x += guy.velocityX * speed * elapsed; guy.y += guy.velocityY * speed * elapsed;
+                        guy.x += guy.velocityX * speed * elapsed;
+                        guy.y += guy.velocityY * speed * elapsed;
                     }
                     collideGuyWithWalls(guy);
-                    keepOnScreen(guy); place(guy);
+                    keepOnScreen(guy);
+                    place(guy);
                 });
                 separateGuys(now);
                 collectGreenBalls(elapsed);
@@ -384,6 +415,7 @@
                 moveHazards(elapsed);
                 moveFlyers(elapsed, now);
                 processWalls(now);
+                updatePositions();
                 requestAnimationFrame(animate);
             }
             requestAnimationFrame(animate);
