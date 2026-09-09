@@ -297,7 +297,7 @@
         }
 
         function activateHazards() {
-            if (!guys.some((guy) => guy.hp > 1500) || hazards.length) return;
+            if (!guys.some((guy) => guy.hp > 1500 && !guy.boostEnds) || hazards.length) return;
             const highestHpGuy = guys.reduce((a, b) => a.hp > b.hp ? a : b);
             const corners = [
                 { x: 0, y: 0 },
