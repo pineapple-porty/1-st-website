@@ -323,9 +323,21 @@
 
         function activateHazards() {
             if (!guys.some((guy) => guy.hp > 1500) || hazards.length) return;
+            const highestHpGuy = guys.reduce((a, b) => a.hp > b.hp ? a : b);
+            const corners = [
+                { x: 0, y: 0 },
+                { x: innerWidth - 42, y: 0 },
+                { x: 0, y: innerHeight - 42 },
+                { x: innerWidth - 42, y: innerHeight - 42 }
+            ];
+            const closestCorner = corners.reduce((a, b) => {
+                const distA = Math.hypot(a.x - (highestHpGuy.x + highestHpGuy.width / 2), a.y - (highestHpGuy.y + highestHpGuy.height / 2));
+                const distB = Math.hypot(b.x - (highestHpGuy.x + highestHpGuy.width / 2), b.y - (highestHpGuy.y + highestHpGuy.height / 2));
+                return distA < distB ? a : b;
+            });
             for (let index = 0; index < 3; index += 1) {
                 const size = 42;
-                const hazard = { element: makeElement('game-object black-hazard'), x: random(0, innerWidth - size), y: random(0, innerHeight - size), velocityX: random(-2, 2), velocityY: random(-2, 2), size, radius: size / 2, damage: 1000 };
+                const hazard = { element: makeElement('game-object black-hazard'), x: closestCorner.x, y: closestCorner.y, velocityX: random(-2, 2), velocityY: random(-2, 2), size, radius: size / 2, damage: 500 };
                 hazard.element.style.width = hazard.element.style.height = `${size}px`; hazards.push(hazard);
             }
         }
@@ -338,7 +350,7 @@
                 for (const guy of guys) {
                     if (Math.hypot(hazard.x + hazard.radius - (guy.x + guy.width / 2), hazard.y + hazard.radius - (guy.y + guy.height / 2)) >= guy.radius + hazard.radius) continue;
                     guy.hp -= hazard.damage; updateHp(guy);
-                    if (hazard.damage === 1000) {
+                    if (hazard.damage === 500) {
                         for (let index = 0; index < 4; index += 1) {
                             const size = 16;
                             const shard = { element: makeElement('game-object black-hazard'), x: hazard.x, y: hazard.y, velocityX: Math.cos(index * Math.PI / 2) * 3, velocityY: Math.sin(index * Math.PI / 2) * 3, size, radius: 8, damage: 30 };
