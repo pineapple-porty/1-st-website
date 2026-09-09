@@ -60,9 +60,7 @@
         const flyers = [];
         const hardHitTimes = new Map();
         const armorSquares = [];
-        const armorStarts = [
-            [.1,.1], [.9,.1], [.1,.9], [.9,.9], [.5,.3], [.3,.5], [.7,.7], [.2,.8]
-        ];
+        let lastArmorSpawn = 0;
 
         function makeElement(className, parent = page) {
             const element = document.createElement('div');
@@ -95,15 +93,6 @@
         healthStarts.forEach(([xRatio, yRatio, velocityX, velocityY]) => {
             const ball = { element: makeElement('game-object health-ball'), x: xRatio * innerWidth, y: yRatio * innerHeight, velocityX, velocityY, size: 18, radius: 9 };
             greenBalls.push(ball);
-        });
-
-        // Green armor squares (5000 HP) and rare purple armor squares (10000 HP)
-        armorStarts.forEach(([xRatio, yRatio]) => {
-            const isPurple = Math.random() < 0.2;
-            const size = 24;
-            const element = makeElement(isPurple ? 'armor-square armor-purple' : 'armor-square armor-green');
-            element.style.width = element.style.height = `${size}px`;
-            armorSquares.push({ element, x: xRatio * innerWidth, y: yRatio * innerHeight, size, radius: size / 2, armorType: isPurple ? 'purple' : 'green', armorHp: isPurple ? 10000 : 5000 });
         });
 
         // Fourteen harmless flyers that seek the three lowest-HP guys.
@@ -215,6 +204,19 @@
                 }
                 place(ball);
             });
+        }
+
+        function spawnArmorSquare(now) {
+            if (armorSquares.length > 0 || now - lastArmorSpawn < 10000) return;
+            if (Math.random() < 0.95) return;
+            lastArmorSpawn = now;
+            const isPurple = Math.random() < 0.1;
+            const size = 24;
+            const x = random(20, innerWidth - 44);
+            const y = random(20, innerHeight - 44);
+            const element = makeElement(isPurple ? 'armor-square armor-purple' : 'armor-square armor-green');
+            element.style.width = element.style.height = `${size}px`;
+            armorSquares.push({ element, x, y, size, radius: size / 2, armorType: isPurple ? 'purple' : 'green', armorHp: isPurple ? 10000 : 5000 });
         }
 
         function collectArmorSquares(elapsed) {
@@ -480,6 +482,7 @@
                 });
                 separateGuys(now);
                 collectGreenBalls(elapsed);
+                spawnArmorSquare(now);
                 collectArmorSquares(elapsed);
                 spawnBlueBallsIfNeeded(now);
                 moveHazards(elapsed);
