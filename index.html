@@ -22,6 +22,7 @@
         .armor-green { background: #54b86b; box-shadow: 0 0 12px #b9f29b; }
         .armor-purple { background: #a855f7; box-shadow: 0 0 12px #c084fc; }
         .armor-wrapper { position: absolute; pointer-events: none; border-radius: 12px; z-index: -1; }
+        .grenade { position: fixed; z-index: 5; border-radius: 50%; background: #ef4444; box-shadow: 0 0 10px #f87171; border: 2px solid #fca5a5; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -60,7 +61,9 @@
         const flyers = [];
         const hardHitTimes = new Map();
         const armorSquares = [];
+        const grenades = [];
         let lastArmorSpawn = 0;
+        let lastGrenadeTime = 0;
 
         function makeElement(className, parent = page) {
             const element = document.createElement('div');
@@ -270,6 +273,70 @@
             }
         }
 
+        function throwGrenade(guy, now) {
+            if (now - lastGrenadeTime < 2000) return;
+            if (guy.grenadeCooldown && now < guy.grenadeCooldown) return;
+            lastGrenadeTime = now;
+            guy.grenadeCooldown = now + 5000;
+            const size = 16;
+            const grenade = {
+                element: makeElement('grenade'),
+                x: guy.x + guy.width / 2 - size / 2,
+                y: guy.y + guy.height / 2 - size / 2,
+                velocityX: guy.velocityX * 1.5 + (Math.random() - 0.5) * 4,
+                velocityY: guy.velocityY * 1.5 + (Math.random() - 0.5) * 4,
+                size, radius: size / 2,
+                damage: 200,
+                exploding: false,
+                fuseTime: now + 1500,
+                thrower: guy
+            };
+            grenade.element.style.width = grenade.element.style.height = `${size}px`;
+            grenades.push(grenade);
+            place(grenade);
+        }
+
+        function updateGrenades(now, elapsed) {
+            grenades.slice().forEach((grenade) => {
+                if (grenade.exploding) {
+                    grenade.element.style.background = '#f59e0b';
+                    grenade.element.style.boxShadow = '0 0 20px #fbbf24';
+                    setTimeout(() => {
+                        grenade.element.remove();
+                        grenades.splice(grenades.indexOf(grenade), 1);
+                    }, 500);
+                    return;
+                }
+                grenade.x += grenade.velocityX * elapsed;
+                grenade.y += grenade.velocityY * elapsed;
+                grenade.velocityY += 0.1 * elapsed;
+                keepOnScreen(grenade);
+                place(grenade);
+                if (now >= grenade.fuseTime) {
+                    grenade.exploding = true;
+                    for (const target of guys) {
+                        if (target === grenade.thrower) continue;
+                        const dist = Math.hypot(
+                            grenade.x + grenade.radius - (target.x + target.width / 2),
+                            grenade.y + grenade.radius - (target.y + target.height / 2)
+                        );
+                        if (dist < grenade.radius + target.radius) {
+                            let actualDamage = grenade.damage;
+                            if (target.armor !== undefined && target.armor > 0) {
+                                const half = Math.ceil(grenade.damage / 2);
+                                target.armor -= half;
+                                actualDamage = Math.floor(grenade.damage / 2);
+                                if (target.armor <= 0) { delete target.armor; delete target.armorType; }
+                                updateArmor(target);
+                            }
+                            target.hp -= actualDamage;
+                            updateHp(target);
+                        }
+                    }
+                }
+            });
+        }
+
         function moveFlyers(elapsed, now) {
             const slowest = guys.map((guy, index) => ({ guy, index })).sort((a, b) => a.guy.hp - b.guy.hp).slice(0, 3);
             const guyToBall = new Map();
@@ -438,6 +505,10 @@
                 drag = { guy, index, id: event.pointerId, offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top, lastX: event.clientX, lastY: event.clientY, lastTime: performance.now() };
                 guy.dragging = true; guy.velocityX = guy.velocityY = 0;
                 guy.element.setPointerCapture(event.pointerId); guy.element.classList.add('is-dragging');
+                const now = performance.now();
+                if (event.button === 2) {
+                    throwGrenade(guy, now);
+                }
             });
             guy.element.addEventListener('pointermove', (event) => {
                 if (!drag || drag.guy !== guy || drag.id !== event.pointerId) return;
@@ -496,6 +567,7 @@
                 spawnBlueBallsIfNeeded(now);
                 moveHazards(elapsed);
                 moveFlyers(elapsed, now);
+                updateGrenades(now, elapsed);
                 processWalls(now);
                 requestAnimationFrame(animate);
             }
