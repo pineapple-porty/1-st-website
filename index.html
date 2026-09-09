@@ -18,6 +18,9 @@
         .floating-guy-track-8 { width: clamp(4.5rem, 8vw, 6.25rem); filter: hue-rotate(75deg); }
         .floating-guy-track-9 { width: clamp(5rem, 8.5vw, 6.75rem); filter: hue-rotate(195deg); }
         .floating-guy-track-10 { width: clamp(4.25rem, 7vw, 5.5rem); filter: hue-rotate(250deg); }
+        .armor-square { position: fixed; z-index: 2; border: 2px solid #fff; pointer-events: none; }
+        .armor-green { background: #54b86b; box-shadow: 0 0 12px #b9f29b; }
+        .armor-purple { background: #a855f7; box-shadow: 0 0 12px #c084fc; }
     </style>
 </head>
 <body>
@@ -55,6 +58,10 @@
         const burstBalls = [];
         const flyers = [];
         const hardHitTimes = new Map();
+        const armorSquares = [];
+        const armorStarts = [
+            [.1,.1], [.9,.1], [.1,.9], [.9,.9], [.5,.3], [.3,.5], [.7,.7], [.2,.8]
+        ];
 
         function makeElement(className, parent = page) {
             const element = document.createElement('div');
@@ -82,6 +89,15 @@
             greenBalls.push(ball);
         });
 
+        // Green armor squares (5000 HP) and rare purple armor squares (10000 HP)
+        armorStarts.forEach(([xRatio, yRatio]) => {
+            const isPurple = Math.random() < 0.2;
+            const size = 24;
+            const element = makeElement(isPurple ? 'armor-square armor-purple' : 'armor-square armor-green');
+            element.style.width = element.style.height = `${size}px`;
+            armorSquares.push({ element, x: xRatio * innerWidth, y: yRatio * innerHeight, size, radius: size / 2, armorType: isPurple ? 'purple' : 'green', armorHp: isPurple ? 10000 : 5000 });
+        });
+
         // Fourteen harmless flyers that seek the three lowest-HP guys.
         const flyerColors = ['#fff4a8', '#ff9f74', '#d79bff', '#72e4de'];
         for (let index = 0; index < 14; index += 1) {
@@ -94,6 +110,12 @@
         function updateHp(guy) {
             guy.hpLabel.textContent = `hp:${Math.round(guy.hp)}`;
             guy.element.setAttribute('aria-label', `Draggable floating portrait, ${Math.round(guy.hp)} health points`);
+        }
+
+        function updateArmor(guy) {
+            if (guy.armor !== undefined) {
+                guy.hpLabel.textContent = `hp:${Math.round(guy.hp)} armor:${Math.round(guy.armor)}`;
+            }
         }
 
         function keepOnScreen(object) {
@@ -130,7 +152,22 @@
                     const closingSpeed = -((b.velocityX * hpSpeed(b.hp) - a.velocityX * hpSpeed(a.hp)) * nx + (b.velocityY * hpSpeed(b.hp) - a.velocityY * hpSpeed(a.hp)) * ny);
                     const key = `${first}-${second}`;
                     if (closingSpeed >= 7.5 && now - (hardHitTimes.get(key) || 0) > 650) {
-                        a.hp -= 30; b.hp -= 30; updateHp(a); updateHp(b); hardHitTimes.set(key, now);
+                        let damageA = 30, damageB = 30;
+                        if (a.armor !== undefined && a.armor > 0) {
+                            const half = Math.ceil(30 / 2);
+                            a.armor -= half;
+                            damageA = Math.floor(30 / 2);
+                            if (a.armor <= 0) { delete a.armor; delete a.armorType; }
+                            updateArmor(a);
+                        }
+                        if (b.armor !== undefined && b.armor > 0) {
+                            const half = Math.ceil(30 / 2);
+                            b.armor -= half;
+                            damageB = Math.floor(30 / 2);
+                            if (b.armor <= 0) { delete b.armor; delete b.armorType; }
+                            updateArmor(b);
+                        }
+                        a.hp -= damageA; b.hp -= damageB; updateHp(a); updateHp(b); hardHitTimes.set(key, now);
                     }
                     const relative = (b.velocityX - a.velocityX) * nx + (b.velocityY - a.velocityY) * ny;
                     if (relative < 0 && !a.dragging && !b.dragging) {
@@ -159,6 +196,23 @@
                     }
                 }
                 place(ball);
+            });
+        }
+
+        function collectArmorSquares(elapsed) {
+            armorSquares.forEach((armor) => {
+                armor.width = armor.height = armor.size;
+                for (const guy of guys) {
+                    if (Math.hypot(armor.x + armor.radius - (guy.x + guy.width / 2), armor.y + armor.radius - (guy.y + guy.height / 2)) < guy.radius + armor.radius) {
+                        guy.armor = armor.armorHp;
+                        guy.armorType = armor.armorType;
+                        updateArmor(guy);
+                        armor.element.remove();
+                        armorSquares.splice(armorSquares.indexOf(armor), 1);
+                        break;
+                    }
+                }
+                place(armor);
             });
         }
 
@@ -324,7 +378,17 @@
                 hazard.width = hazard.height = hazard.size; keepOnScreen(hazard); place(hazard);
                 for (const guy of guys) {
                     if (Math.hypot(hazard.x + hazard.radius - (guy.x + guy.width / 2), hazard.y + hazard.radius - (guy.y + guy.height / 2)) >= guy.radius + hazard.radius) continue;
-                    guy.hp -= hazard.damage; updateHp(guy);
+                    let actualDamage = hazard.damage;
+                    if (guy.armor !== undefined && guy.armor > 0) {
+                        const halfDamage = Math.ceil(hazard.damage / 2);
+                        guy.armor -= halfDamage;
+                        actualDamage = Math.floor(hazard.damage / 2);
+                        if (guy.armor <= 0) {
+                            delete guy.armor; delete guy.armorType;
+                        }
+                        updateArmor(guy);
+                    }
+                    guy.hp -= actualDamage; updateHp(guy);
                     if (hazard.damage === 500) {
                         for (let index = 0; index < 4; index += 1) {
                             const size = 16;
@@ -398,6 +462,7 @@
                 });
                 separateGuys(now);
                 collectGreenBalls(elapsed);
+                collectArmorSquares(elapsed);
                 spawnBlueBallsIfNeeded(now);
                 moveHazards(elapsed);
                 moveFlyers(elapsed, now);
