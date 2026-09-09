@@ -21,7 +21,7 @@
     </style>
 </head>
 <body>
-    <pre id="positions" style="position: fixed; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: #fff; padding: 8px; margin: 0; font: 12px monospace; overflow: auto; z-index: 100;"></pre>
+
     <main class="hello-page" aria-label="Hello World" style="margin-top: 80px;">
         <div class="hello-content">
             <h1 class="hello-heading">ZACHARY SPARKS</h1>
@@ -32,7 +32,6 @@
     <script>
         // Everything is kept in this readable file so the repository stays easy to edit.
         const page = document.querySelector('.hello-page');
-        const positionsEl = document.getElementById('positions');
         const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
         const random = (min, max) => min + Math.random() * (max - min);
         const hpSpeed = (hp) => Math.pow(1.08, hp / 30);
@@ -64,31 +63,7 @@
             return element;
         }
 
-        function updatePositions() {
-            const lines = [];
-            guys.forEach((guy, i) => {
-                lines.push(`guy${i + 1}: (${Math.round(guy.x)}, ${Math.round(guy.y)}) hp:${Math.round(guy.hp)}`);
-            });
-            greenBalls.forEach((ball, i) => {
-                lines.push(`greenBall${i + 1}: (${Math.round(ball.x)}, ${Math.round(ball.y)})`);
-            });
-            blueBalls.forEach((ball, i) => {
-                lines.push(`blueBall${i + 1}: (${Math.round(ball.x)}, ${Math.round(ball.y)})`);
-            });
-            flyers.forEach((flyer, i) => {
-                lines.push(`flyer${i + 1}: (${Math.round(flyer.x)}, ${Math.round(flyer.y)})`);
-            });
-            hazards.forEach((hazard, i) => {
-                lines.push(`hazard${i + 1}: (${Math.round(hazard.x)}, ${Math.round(hazard.y)})`);
-            });
-            walls.forEach((wall, i) => {
-                lines.push(`wall${i + 1}: (${Math.round(wall.x)}, ${Math.round(wall.y)}) ${Math.round(wall.width)}x${Math.round(wall.height)}`);
-            });
-            burstBalls.forEach((ball, i) => {
-                lines.push(`burstBall${i + 1}: (${Math.round(ball.x)}, ${Math.round(ball.y)})`);
-            });
-            positionsEl.textContent = lines.join('\n');
-        }
+
 
         function place(object) {
             object.element.style.transform = `translate3d(${object.x}px, ${object.y}px, 0)`;
@@ -427,7 +402,6 @@
                 moveHazards(elapsed);
                 moveFlyers(elapsed, now);
                 processWalls(now);
-                updatePositions();
                 requestAnimationFrame(animate);
             }
             requestAnimationFrame(animate);
