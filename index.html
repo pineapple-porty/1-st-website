@@ -193,7 +193,12 @@
                 keepOnScreen(ball);
                 for (const guy of guys) {
                     if (Math.hypot(ball.x + ball.radius - (guy.x + guy.width / 2), ball.y + ball.radius - (guy.y + guy.height / 2)) < guy.radius + ball.radius) {
-                        guy.hp += 30; updateHp(guy);
+                        if (guy.boostEnds) {
+                            guy.collectedHp = (guy.collectedHp || 0) + 30;
+                        } else {
+                            guy.hp += 30;
+                        }
+                        updateHp(guy);
                         if (greenBalls.includes(ball)) respawnBall(ball);
                         else {
                             ball.element.remove();
@@ -239,7 +244,11 @@
         function spawnBlueBallsIfNeeded(now) {
             guys.forEach((guy) => {
                 if (guy.boostEnds && now >= guy.boostEnds) {
-                    guy.hp = guy.savedHp; delete guy.savedHp; delete guy.boostEnds; updateHp(guy);
+                    guy.hp = guy.savedHp + (guy.collectedHp || 0);
+                    delete guy.savedHp;
+                    delete guy.boostEnds;
+                    delete guy.collectedHp;
+                    updateHp(guy);
                 }
             });
             const lowCount = guys.filter((guy) => guy.hp < -100).length;
