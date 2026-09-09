@@ -21,6 +21,7 @@
         .armor-square { position: fixed; z-index: 2; border: 2px solid #fff; pointer-events: none; }
         .armor-green { background: #54b86b; box-shadow: 0 0 12px #b9f29b; }
         .armor-purple { background: #a855f7; box-shadow: 0 0 12px #c084fc; }
+        .armor-wrapper { position: absolute; pointer-events: none; border-radius: 12px; z-index: -1; }
     </style>
 </head>
 <body>
@@ -78,9 +79,16 @@
 
         // Ten draggable guys.
         guyStarts.forEach(([x, y, velocityX, velocityY], index) => {
-            const element = makeElement(`floating-guy-track floating-guy-track-${index + 1}`);
-            element.innerHTML = '<img class="floating-guy" src="images/bouncing-image.png" alt="" draggable="false"><span class="guy-hp">hp:0</span>';
-            guys.push({ element, hpLabel: element.querySelector('.guy-hp'), x, y, velocityX, velocityY, hp: 0, width: 90, height: 140, radius: 70, dragging: false });
+            const guyElement = makeElement(`floating-guy-track floating-guy-track-${index + 1}`);
+            guyElement.innerHTML = '<img class="floating-guy" src="images/bouncing-image.png" alt="" draggable="false"><span class="guy-hp">hp:0</span>';
+            const armorWrapper = makeElement('armor-wrapper');
+            armorWrapper.style.position = 'absolute';
+            armorWrapper.style.pointerEvents = 'none';
+            armorWrapper.style.borderRadius = '12px';
+            armorWrapper.style.zIndex = '-1';
+            armorWrapper.style.display = 'none';
+            guyElement.appendChild(armorWrapper);
+            guys.push({ element: guyElement, armorWrapper, hpLabel: guyElement.querySelector('.guy-hp'), x, y, velocityX, velocityY, hp: 0, width: 90, height: 140, radius: 70, dragging: false });
         });
 
         // Sixteen moving green balls worth 30 HP.
@@ -115,6 +123,16 @@
         function updateArmor(guy) {
             if (guy.armor !== undefined) {
                 guy.hpLabel.textContent = `hp:${Math.round(guy.hp)} armor:${Math.round(guy.armor)}`;
+                guy.armorWrapper.style.display = 'block';
+                guy.armorWrapper.style.background = guy.armorType === 'purple' ? 'rgba(168, 85, 247, 0.4)' : 'rgba(84, 184, 107, 0.4)';
+                guy.armorWrapper.style.border = guy.armorType === 'purple' ? '2px solid #a855f7' : '2px solid #54b86b';
+                guy.armorWrapper.style.width = `${guy.width + 20}px`;
+                guy.armorWrapper.style.height = `${guy.height + 20}px`;
+                guy.armorWrapper.style.left = `-10px`;
+                guy.armorWrapper.style.top = `-10px`;
+            } else {
+                guy.hpLabel.textContent = `hp:${Math.round(guy.hp)}`;
+                guy.armorWrapper.style.display = 'none';
             }
         }
 
