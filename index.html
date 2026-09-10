@@ -216,7 +216,7 @@
 
         function spawnArmorSquare(now) {
             if (armorSquares.length > 0 || now - lastArmorSpawn < 10000) return;
-            if (Math.random() < 0.95) return;
+            if (Math.random() < 0.79) return;
             lastArmorSpawn = now;
             const isPurple = Math.random() < 0.1;
             const size = 24;
