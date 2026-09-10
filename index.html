@@ -23,6 +23,9 @@
         .armor-purple { background: #a855f7; box-shadow: 0 0 12px #c084fc; }
         .armor-wrapper { position: absolute; pointer-events: none; border-radius: 12px; z-index: -1; }
         .grenade { position: fixed; z-index: 5; border-radius: 50%; background: #ef4444; box-shadow: 0 0 10px #f87171; border: 2px solid #fca5a5; pointer-events: none; }
+        .bunker { position: fixed; z-index: 3; background: #4b5563; border: 2px solid #6b7280; pointer-events: none; }
+        .mini-bullet { position: fixed; z-index: 5; border-radius: 50%; background: #3b82f6; box-shadow: 0 0 8px #60a5fa; border: 1px solid #93c5fd; pointer-events: none; }
+        .bounce-ball { position: fixed; z-index: 5; border-radius: 50%; background: #ef4444; box-shadow: 0 0 8px #f87171; border: 1px solid #fca5a5; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -62,8 +65,12 @@
         const hardHitTimes = new Map();
         const armorSquares = [];
         const grenades = [];
+        const bunkers = [];
+        const miniBullets = [];
+        const bounceBalls = [];
         let lastArmorSpawn = 0;
         let lastGrenadeTime = 0;
+        let lastBunkerSpawn = 0;
 
         function makeElement(className, parent = page) {
             const element = document.createElement('div');
@@ -106,6 +113,29 @@
             element.style.cssText += `width:${size}px;height:${size}px;color:${flyerColors[index % 4]};background:currentColor`;
             flyers.push({ element, size, x: random(0, innerWidth), y: random(0, innerHeight), velocityX: random(-2, 2), velocityY: random(-2, 2), phase: random(0, Math.PI * 2) });
         }
+
+        // Spawn a random bunker
+        function spawnBunker() {
+            if (bunkers.length > 0 || Math.random() < 0.7) return;
+            const size = 60;
+            const bunker = {
+                element: makeElement('bunker'),
+                x: random(size, innerWidth - size * 2),
+                y: random(size, innerHeight - size * 2),
+                width: size,
+                height: size,
+                radius: size / 2,
+                miniGunCooldown: 0,
+                bounceGunCooldown: 0
+            };
+            bunker.element.style.width = `${size}px`;
+            bunker.element.style.height = `${size}px`;
+            bunker.element.style.left = `${bunker.x}px`;
+            bunker.element.style.top = `${bunker.y}px`;
+            bunkers.push(bunker);
+        }
+        spawnBunker();
+        setInterval(spawnBunker, 30000);
 
         function updateHp(guy) {
             guy.hpLabel.textContent = `hp:${Math.round(guy.hp)}`;
@@ -296,6 +326,44 @@
             place(grenade);
         }
 
+        function updateBunkers(now, elapsed) {
+            bunkers.forEach((bunker) => {
+                if (now >= bunker.miniGunCooldown) {
+                    bunker.miniGunCooldown = now + 200;
+                    const target = guys[Math.floor(Math.random() * guys.length)];
+                    const angle = Math.atan2(target.y + target.height / 2 - (bunker.y + bunker.height / 2), target.x + target.width / 2 - (bunker.x + bunker.width / 2));
+                    const speed = 15;
+                    miniBullets.push({
+                        element: makeElement('mini-bullet'),
+                        x: bunker.x + bunker.width / 2 - 4,
+                        y: bunker.y + bunker.height / 2 - 4,
+                        velocityX: Math.cos(angle) * speed,
+                        velocityY: Math.sin(angle) * speed,
+                        size: 8,
+                        radius: 4,
+                        damage: 2
+                    });
+                }
+                if (now >= bunker.bounceGunCooldown) {
+                    bunker.bounceGunCooldown = now + 2000;
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 8;
+                    bounceBalls.push({
+                        element: makeElement('bounce-ball'),
+                        x: bunker.x + bunker.width / 2 - 6,
+                        y: bunker.y + bunker.height / 2 - 6,
+                        velocityX: Math.cos(angle) * speed,
+                        velocityY: Math.sin(angle) * speed,
+                        size: 12,
+                        radius: 6,
+                        damage: 30,
+                        bounces: 0,
+                        maxBounces: 4
+                    });
+                }
+            });
+        }
+
         function updateGrenades(now, elapsed) {
             grenades.slice().forEach((grenade) => {
                 if (grenade.exploding) {
@@ -333,6 +401,87 @@
                             updateHp(target);
                         }
                     }
+                }
+            });
+        }
+
+        function updateMiniBullets(elapsed) {
+            miniBullets.slice().forEach((bullet) => {
+                bullet.x += bullet.velocityX * elapsed;
+                bullet.y += bullet.velocityY * elapsed;
+                bullet.width = bullet.height = bullet.size;
+                place(bullet);
+                for (const guy of guys) {
+                    if (Math.hypot(bullet.x + bullet.radius - (guy.x + guy.width / 2), bullet.y + bullet.radius - (guy.y + guy.height / 2)) < guy.radius + bullet.radius) {
+                        let actualDamage = bullet.damage;
+                        if (guy.armor !== undefined && guy.armor > 0) {
+                            const half = Math.ceil(bullet.damage / 2);
+                            guy.armor -= half;
+                            actualDamage = Math.floor(bullet.damage / 2);
+                            if (guy.armor <= 0) { delete guy.armor; delete guy.armorType; }
+                            updateArmor(guy);
+                        }
+                        guy.hp -= actualDamage;
+                        updateHp(guy);
+                        bullet.element.remove();
+                        miniBullets.splice(miniBullets.indexOf(bullet), 1);
+                        break;
+                    }
+                }
+                if (bullet.x < 0 || bullet.x > innerWidth || bullet.y < 0 || bullet.y > innerHeight) {
+                    bullet.element.remove();
+                    miniBullets.splice(miniBullets.indexOf(bullet), 1);
+                }
+            });
+        }
+
+        function updateBounceBalls(elapsed) {
+            bounceBalls.slice().forEach((ball) => {
+                ball.x += ball.velocityX * elapsed;
+                ball.y += ball.velocityY * elapsed;
+                ball.width = ball.height = ball.size;
+                place(ball);
+                for (const guy of guys) {
+                    if (Math.hypot(ball.x + ball.radius - (guy.x + guy.width / 2), ball.y + ball.radius - (guy.y + guy.height / 2)) < guy.radius + ball.radius) {
+                        let actualDamage = ball.damage;
+                        if (guy.armor !== undefined && guy.armor > 0) {
+                            const half = Math.ceil(ball.damage / 2);
+                            guy.armor -= half;
+                            actualDamage = Math.floor(ball.damage / 2);
+                            if (guy.armor <= 0) { delete guy.armor; delete guy.armorType; }
+                            updateArmor(guy);
+                        }
+                        guy.hp -= actualDamage;
+                        updateHp(guy);
+                        ball.element.remove();
+                        bounceBalls.splice(bounceBalls.indexOf(ball), 1);
+                        return;
+                    }
+                }
+                if (ball.x <= 0 || ball.x >= innerWidth - ball.size || ball.y <= 0 || ball.y >= innerHeight - ball.size) {
+                    ball.bounces += 1;
+                    if (ball.bounces >= ball.maxBounces) {
+                        for (const guy of guys) {
+                            const dist = Math.hypot(ball.x + ball.radius - (guy.x + guy.width / 2), ball.y + ball.radius - (guy.y + guy.height / 2));
+                            if (dist < 80) {
+                                let actualDamage = 12;
+                                if (guy.armor !== undefined && guy.armor > 0) {
+                                    const half = Math.ceil(12 / 2);
+                                    guy.armor -= half;
+                                    actualDamage = Math.floor(12 / 2);
+                                    if (guy.armor <= 0) { delete guy.armor; delete guy.armorType; }
+                                    updateArmor(guy);
+                                }
+                                guy.hp -= actualDamage;
+                                updateHp(guy);
+                            }
+                        }
+                        ball.element.remove();
+                        bounceBalls.splice(bounceBalls.indexOf(ball), 1);
+                        return;
+                    }
+                    ball.velocityX *= -1;
+                    ball.velocityY *= -1;
                 }
             });
         }
@@ -568,6 +717,9 @@
                 moveHazards(elapsed);
                 moveFlyers(elapsed, now);
                 updateGrenades(now, elapsed);
+                updateBunkers(now, elapsed);
+                updateMiniBullets(elapsed);
+                updateBounceBalls(elapsed);
                 processWalls(now);
                 requestAnimationFrame(animate);
             }
