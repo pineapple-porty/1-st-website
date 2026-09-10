@@ -116,7 +116,9 @@
 
         // Spawn a random bunker
         function spawnBunker() {
-            if (bunkers.length > 0 || Math.random() < 0.7) return;
+            if (bunkers.length > 0) return;
+            const highHpGuys = guys.filter(g => g.hp >= 2000);
+            if (highHpGuys.length < 2) return;
             const size = 60;
             const bunker = {
                 element: makeElement('bunker'),
