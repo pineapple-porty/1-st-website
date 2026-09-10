@@ -434,8 +434,8 @@
 
         function processWalls(now) {
             walls.slice().forEach((wall) => {
-                if (now < wall.expires && wall.hits < 40) return;
-                if (wall.hits >= 40) {
+                if (now < wall.expires && wall.hits < 14) return;
+                if (wall.hits >= 14) {
                     for (let index = 0; index < 200; index += 1) {
                         const size = 8;
                         const ball = { element: makeElement('game-object health-ball'), x: wall.x, y: wall.y, velocityX: random(-4, 4), velocityY: random(-4, 4), size, radius: 4 };
